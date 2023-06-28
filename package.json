@@ -3,24 +3,36 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0 <=20.0.0"
+  },
+  "bin": "build/app.js",
+  "pkg": {
+    "assets": [
+      "src/**/*"
+    ]
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "package": "tsc --project tsconfig.sidecar.json && pkg package.json --output src-tauri/binaries/app && node scripts/move-binary.js",
     "preview": "vite preview",
+    "test": "true",
     "tauri": "tauri"
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "@tauri-apps/api": "^1.4.0"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^1.4.0",
     "@types/node": "^18.7.10",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
     "@vitejs/plugin-react": "^3.0.0",
+    "execa": "5.1.1",
+    "pkg": "^5.8.1",
     "typescript": "^4.9.5",
-    "vite": "^4.2.1",
-    "@tauri-apps/cli": "^1.4.0"
+    "vite": "^4.2.1"
   }
 }
