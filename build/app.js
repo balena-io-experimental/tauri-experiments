@@ -1,7 +1,53 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const hello = () => {
-    console.log("hello world");
+const minimist = require("minimist");
+const ws_1 = require("ws");
+const scanner_1 = require("./scanner");
+const DEBUG = true;
+// parse arguments
+const argv = minimist(process.argv.slice(2));
+const port = argv.port || 8080;
+const host = argv.host || "localhost";
+let messaging;
+// set the proper mode - state machine
+if (argv.privileged) {
+    // we're privileged, better be careful
+}
+else {
+    // not privileged, we can't flash, but we can scan
+}
+// open websocket server
+if (argv.websockets) {
+    // Websocket will handle communication with the frontend
+    const wss = new ws_1.WebSocketServer({ port, host });
+    wss.on("connection", function connection(ws) {
+        messaging = ws;
+        ws.on("error", console.error);
+        ws.on("message", function message(data) {
+            if (DEBUG)
+                console.log("message from client: ", data);
+            const response = parseCommand(String(data));
+            // if (response) ws.send(response)
+        });
+        ws.on("close", function close() {
+            // when the client closes the connection we assume the process is done and exit
+            console.log("disconnected");
+            process.exit(0);
+        });
+        ws.send(JSON.stringify({ type: "Connected" }));
+    });
+}
+const parseCommand = async (message) => {
+    const parsed = JSON.parse(message);
+    const command = parsed.value;
+    switch (command) {
+        case "scan":
+            await (0, scanner_1.default)(messaging);
+            break;
+    }
+};
+const hello = async () => {
+    console.log("Server is runnin on port", port);
 };
 hello();
 exports.default = hello;

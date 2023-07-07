@@ -9,7 +9,10 @@
   "bin": "build/app.js",
   "pkg": {
     "assets": [
-      "src/**/*"
+      "src/**/*",
+      "node_modules/usb/prebuilds/darwin-x64+arm64/node.napi.node",
+      "node_modules/lzma-native/prebuilds/darwin-arm64/node.napi.node",
+      "node_modules/drivelist/build/Release/drivelist.node"
     ]
   },
   "scripts": {
@@ -21,16 +24,24 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "etcher-sdk": "^8.6.2",
+    "minimist": "^1.2.8",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-use-websocket": "^4.3.1",
+    "sudo-prompt": "^9.2.1",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.4.0",
+    "@types/minimist": "^1.2.2",
     "@types/node": "^18.7.10",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
+    "@types/ws": "^8.5.5",
     "@vitejs/plugin-react": "^3.0.0",
     "execa": "5.1.1",
+    "mkdirp": "^3.0.1",
     "pkg": "^5.8.1",
     "typescript": "^4.9.5",
     "vite": "^4.2.1"

@@ -12,16 +12,7 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false,
-      "shell": {
-        "sidecar": true,
-        "scope": [
-          {
-            "name": "binaries/app",
-            "sidecar": true
-          }
-        ]
-      }
+      "all": false
     },
     "bundle": {
       "active": true,

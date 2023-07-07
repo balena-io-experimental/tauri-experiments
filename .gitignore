@@ -24,6 +24,6 @@ dist-ssr
 *.sw?
 
 # Tauri
-build
+build/*
 src-tauri/binaries/*
 src-tauri/target
