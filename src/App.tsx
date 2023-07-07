@@ -19,7 +19,7 @@ function App() {
 
   const [backendStarted, setBackendStarted] = useState<boolean>(false)
   const [messageHistory, setMessageHistory] = useState<any[]>([])
-  const [deviceList, setDeviceList] = useState<string[]>([])
+  const [deviceList, setDeviceList] = useState<AdapterSourceDestination[]>([])
 
   /** Ask the rust backend to spawn the flasher nodejs app, that app will ask for privileges */
   // TODO: Abstract away this // This should be "backend agnostic", and first test for an existing flasher backend, if none is found, it can then start one.
@@ -49,10 +49,11 @@ function App() {
         const data = JSON.parse(lastMessage.data)
         switch (data.type) {
           case "scan_attach":
-            setDeviceList((prev) => [...prev, data.data.drive.drive.device])
+            console.log(data)
+            setDeviceList((prev) => [...prev, data.data.drive.drive])
             break
           case "scan_detach":
-            setDeviceList((prev) => prev.filter((device) => device !== data.data.drive.drive.device))
+            setDeviceList((prev) => prev.filter((device) => device.device !== data.data.drive.drive.device))
             break
         }
       }
@@ -65,6 +66,7 @@ function App() {
 
   useEffect(() => {
     if (readyState === ReadyState.OPEN) {
+      // scan on initial connection
       sendJsonMessage({ type: "command", value: "scan" }, false)
     }
   }, [readyState])
@@ -73,9 +75,16 @@ function App() {
     <div className="container">
       <h1>{connectionStatus}!</h1>
       <ul>
-        {deviceList.map((device: any) => (
-          <li key={device}>{device}</li>
-        ))}
+        {deviceList
+          .filter((device) => !device.isSystem)
+          .map((device: any) => (
+            <li key={device.device}>
+              {device.description} ({device.device} - {(device.size / 1024 / 1024 / 1024).toFixed(2)} GB)
+            </li>
+          ))}
+        <li>
+          + {deviceList.filter((device) => device.isSystem).length} hidden <i>system</i> drive
+        </li>
       </ul>
     </div>
   )
