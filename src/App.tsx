@@ -1,53 +1,93 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/tauri";
-import "./App.css";
+import { useEffect, useState, useCallback } from "react"
+import useWebSocket, { ReadyState } from "react-use-websocket"
+import "./App.css"
+import { AdapterSourceDestination } from "etcher-sdk/build/scanner/adapters/adapter"
+
+const DEBUG = true
+
+declare const window: any
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  // used to delay a little the connection to the server
+  const getSocketUrl = useCallback((): Promise<string> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve("ws://localhost:8080")
+      }, 2000)
+    })
+  }, [])
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke("greet", { name }));
+  const [backendStarted, setBackendStarted] = useState<boolean>(false)
+  const [messageHistory, setMessageHistory] = useState<any[]>([])
+  const [deviceList, setDeviceList] = useState<AdapterSourceDestination[]>([])
+
+  /** Ask the rust backend to spawn the flasher nodejs app, that app will ask for privileges */
+  // TODO: Abstract away this // This should be "backend agnostic", and first test for an existing flasher backend, if none is found, it can then start one.
+  function startBackend(privileged = false) {
+    setBackendStarted(true)
+    // Be sure to set `build.withGlobalTauri` in `tauri.conf.json` to true
+    const invoke = window.__TAURI__.invoke
+    // Invoke the command
+    invoke("start_backend", { privileged })
   }
+
+  // Connect to Websocket
+  const { sendJsonMessage, lastMessage, readyState } = useWebSocket(getSocketUrl, { share: true })
+
+  const connectionStatus = {
+    [ReadyState.CONNECTING]: "Connecting",
+    [ReadyState.OPEN]: "Connected",
+    [ReadyState.CLOSING]: "Closing",
+    [ReadyState.CLOSED]: "Closed",
+    [ReadyState.UNINSTANTIATED]: "Uninstantiated",
+  }[readyState]
+
+  useEffect(() => {
+    if (lastMessage !== null) {
+      setMessageHistory((prev) => prev.concat(lastMessage))
+      if (lastMessage.type === "message") {
+        const data = JSON.parse(lastMessage.data)
+        switch (data.type) {
+          case "scan_attach":
+            console.log(data)
+            setDeviceList((prev) => [...prev, data.data.drive.drive])
+            break
+          case "scan_detach":
+            setDeviceList((prev) => prev.filter((device) => device.device !== data.data.drive.drive.device))
+            break
+        }
+      }
+    }
+  }, [lastMessage, setMessageHistory])
+
+  useEffect(() => {
+    if (!backendStarted) startBackend()
+  }, [])
+
+  useEffect(() => {
+    if (readyState === ReadyState.OPEN) {
+      // scan on initial connection
+      sendJsonMessage({ type: "command", value: "scan" }, false)
+    }
+  }, [readyState])
 
   return (
     <div className="container">
-      <h1>Welcome to Tauri!</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-
-      <p>{greetMsg}</p>
+      <h1>{connectionStatus}!</h1>
+      <ul>
+        {deviceList
+          .filter((device) => !device.isSystem)
+          .map((device: any) => (
+            <li key={device.device}>
+              {device.description} ({device.device} - {(device.size / 1024 / 1024 / 1024).toFixed(2)} GB)
+            </li>
+          ))}
+        <li>
+          + {deviceList.filter((device) => device.isSystem).length} hidden <i>system</i> drive
+        </li>
+      </ul>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
